@@ -14,11 +14,11 @@ import (
 var jwtSecret = []byte(os.Getenv("SECRET_KEY"))
 
 func AuthenticateUser(db *sql.DB, email string, password string) (*models.User, error) {
-	query := "SELECT id, email, hash FROM users WHERE email=$1"
+	query := "SELECT id, email, hash, first_name, last_name FROM users WHERE email=$1"
 	row := db.QueryRow(query, email)
 
 	var user models.User
-	err := row.Scan(&user.ID, &user.Email, &user.Hash)
+	err := row.Scan(&user.ID, &user.Email, &user.Hash, &user.FirstName, &user.LastName)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			LogAction("User not found" + email)

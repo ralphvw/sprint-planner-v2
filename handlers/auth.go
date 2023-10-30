@@ -36,11 +36,18 @@ func Login(db *sql.DB) http.HandlerFunc {
 			return
 		}
 
+		userResponse := models.UserResponse{
+			ID:        authenticatedUser.ID,
+			Email:     authenticatedUser.Email,
+			FirstName: authenticatedUser.FirstName,
+			LastName:  authenticatedUser.LastName,
+		}
+
 		result := make(map[string]interface{})
 		result["token"] = token
-		result["user"] = authenticatedUser
+		result["user"] = userResponse
 		message := "Login Successful"
-		response := models.Response{
+		response := models.SingleResponse{
 			Message: message,
 			Data:    result,
 		}
@@ -83,11 +90,11 @@ func SignUp(db *sql.DB) http.HandlerFunc {
 
 		var newUser models.User
 
-		err = db.QueryRow(query, user.FirstName, user.LastName, user.Email, user.Hash).Scan(&newUser)
+		err = db.QueryRow(query, user.FirstName, user.LastName, user.Email, user.Hash).Scan(&newUser.ID, &newUser.FirstName, &newUser.LastName, &newUser.Email)
 
 		if err != nil {
-			helpers.LogAction("Error: Failed to create user")
-			http.Error(w, "Server Error", http.StatusInternalServerError)
+			helpers.LogAction("Error: Failed to create user " + err.Error())
+			http.Error(w, "User already exists", http.StatusInternalServerError)
 			return
 		}
 
@@ -98,7 +105,7 @@ func SignUp(db *sql.DB) http.HandlerFunc {
 			Email:     newUser.Email,
 		}
 
-		response := models.Response{
+		response := models.SingleResponse{
 			Message: "User created successfully",
 			Data:    userResponse,
 		}
@@ -109,6 +116,7 @@ func SignUp(db *sql.DB) http.HandlerFunc {
 			return
 		}
 
+		helpers.LogAction("User created successfully: " + newUser.Email)
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		w.Write(responseJSON)

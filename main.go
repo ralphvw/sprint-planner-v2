@@ -19,7 +19,7 @@ func main() {
 
 	db := db.InitDb()
 
-	fmt.Print("Server started at " + port)
+	fmt.Print("Server started at " + port + "\n")
 	http.HandleFunc("/", func(http.ResponseWriter, *http.Request) {
 		helpers.LogAction("Welcome")
 	})

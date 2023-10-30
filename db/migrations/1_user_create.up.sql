@@ -1,0 +1,9 @@
+CREATE TABLE IF NOT EXISTS users(
+  id SERIAL PRIMARY KEY,
+  email VARCHAR UNIQUE,
+  first_name VARCHAR,
+  last_name VARCHAR,
+  hash VARCHAR,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+)
