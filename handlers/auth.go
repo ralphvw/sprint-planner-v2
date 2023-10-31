@@ -5,8 +5,10 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/ralphvw/sprint-planner-v2/constants"
 	"github.com/ralphvw/sprint-planner-v2/helpers"
 	"github.com/ralphvw/sprint-planner-v2/models"
+	"github.com/ralphvw/sprint-planner-v2/queries"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -86,7 +88,7 @@ func SignUp(db *sql.DB) http.HandlerFunc {
 		}
 
 		user.Hash = hashedPassword
-		query := `INSERT INTO users (first_name, last_name, email, hash) VALUES ($1, $2, $3, $4) RETURNING id, first_name as "firstName", last_name as "lastName", email as "email"`
+		query := queries.CreateUser
 
 		var newUser models.User
 
@@ -121,5 +123,64 @@ func SignUp(db *sql.DB) http.HandlerFunc {
 		w.WriteHeader(http.StatusOK)
 		w.Write(responseJSON)
 
+	}
+}
+
+func SendResetMail(db *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var user models.User
+		err := json.NewDecoder(r.Body).Decode(&user)
+		if err != nil {
+			helpers.LogAction("Error: Invalid Input: Send Reset Email Handler")
+			http.Error(w, "Invalid Input", http.StatusBadRequest)
+			return
+		}
+
+		var res models.User
+
+		query := queries.GetUserByEmail
+		row := db.QueryRow(query, user.Email)
+
+		e := row.Scan(&res.ID, &res.Email, &res.Hash, &res.FirstName, &res.LastName)
+		if e != nil {
+			if e == sql.ErrNoRows {
+				helpers.LogAction("User not found: " + user.Email)
+				http.Error(w, "User does not exist", http.StatusNotFound)
+				return
+			}
+		}
+		token, err := helpers.CreateToken(res.ID, res.FirstName, res.LastName, res.Email)
+		if err != nil {
+			helpers.LogAction("Token creation failed")
+			http.Error(w, "Server Error", http.StatusInternalServerError)
+			return
+		}
+
+		emailerr := helpers.SendMail(constants.ResetPasswordEmail(res.FirstName, token), "Reset Password", res.Email, res.FirstName)
+
+		if emailerr != nil {
+			http.Error(w, "Email could not be sent", http.StatusInternalServerError)
+			return
+		}
+
+		result := make(map[string]interface{})
+		result["token"] = token
+		message := "Reset Password Email Sent"
+
+		response := models.SingleResponse{
+			Message: message,
+			Data:    result,
+		}
+
+		responseJSON, err := json.Marshal(response)
+		if err != nil {
+			helpers.LogAction(err.Error())
+			http.Error(w, "Server Error", http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write(responseJSON)
 	}
 }

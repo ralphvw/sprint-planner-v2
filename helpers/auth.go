@@ -8,26 +8,27 @@ import (
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/ralphvw/sprint-planner-v2/models"
+	"github.com/ralphvw/sprint-planner-v2/queries"
 	"golang.org/x/crypto/bcrypt"
 )
 
 var jwtSecret = []byte(os.Getenv("SECRET_KEY"))
 
 func AuthenticateUser(db *sql.DB, email string, password string) (*models.User, error) {
-	query := "SELECT id, email, hash, first_name, last_name FROM users WHERE email=$1"
+	query := queries.GetUserByEmail
 	row := db.QueryRow(query, email)
 
 	var user models.User
 	err := row.Scan(&user.ID, &user.Email, &user.Hash, &user.FirstName, &user.LastName)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			LogAction("User not found" + email)
+			LogAction("User not found " + email)
 			return nil, fmt.Errorf("User not found")
 		}
 	}
 
 	if !comparePasswords(password, string(user.Hash)) {
-		LogAction("Authentication failed" + email)
+		LogAction("Authentication failed " + email)
 		return nil, fmt.Errorf("Authentication Failed")
 	}
 
