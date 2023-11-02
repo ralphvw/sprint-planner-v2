@@ -28,6 +28,7 @@ func main() {
 	http.HandleFunc("/auth/signup", handlers.SignUp(db))
 	http.HandleFunc("/auth/send-reset-password-email", handlers.SendResetMail(db))
   http.HandleFunc("/auth/reset-password", handlers.ResetPassword(db))
+  http.HandleFunc("/users", handlers.GetAllUsers(db))
 	err := http.ListenAndServe(":"+port, nil)
 	if err != nil {
 		log.Fatal("Server error:", err)

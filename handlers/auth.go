@@ -219,3 +219,23 @@ func SendResetMail(db *sql.DB) http.HandlerFunc {
 
 
 }
+
+func GetAllUsers(db *sql.DB) http.HandlerFunc {
+  return func(w http.ResponseWriter, r *http.Request) {
+    query := "SELECT id, first_name, last_name FROM users"
+    countQuery := "SELECT COUNT(*) FROM users"
+    var args []interface{}
+    var id int
+    var firstName string
+    var lastName string
+    keys := []string{
+      "id",
+      "firstName",
+      "lastName",
+    }
+
+    message := "All users fetched successfully"
+
+    helpers.GetDataHandler(w, r, db, 10, 1, query, countQuery, message, args, keys, &id, &firstName, &lastName)
+  }
+}
