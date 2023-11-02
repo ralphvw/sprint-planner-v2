@@ -59,3 +59,16 @@ func CreateToken(userId int, firstName string, lastName string, email string) (s
 	}
 	return signedToken, nil
 }
+
+func DecodeToken(tokenString string) (map[string]interface{}, error) {
+  token, err := jwt.Parse(tokenString, func(t *jwt.Token) (interface{}, error) {
+      return []byte(os.Getenv("SECRET_KEY")), nil
+  }) 
+
+  if err != nil || !token.Valid {
+    return nil, err
+  }
+
+  claims := token.Claims.(jwt.MapClaims)
+  return claims, nil
+}

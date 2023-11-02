@@ -2,6 +2,7 @@ package helpers
 
 import (
 	"os"
+	"regexp"
 	"strconv"
 
 	"github.com/sendgrid/sendgrid-go"
@@ -21,4 +22,9 @@ func SendMail(content string, subject string, recepient string, recepientName st
 		LogAction("EMAIL SENT SUCCESSFULLY " + strconv.Itoa(response.StatusCode) + " RESPONSE: " + response.Body)
 	}
 	return nil
+}
+
+func IsValidEmail(email string) bool {
+    emailRegex := regexp.MustCompile(`^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`)
+    return emailRegex.MatchString(email)
 }

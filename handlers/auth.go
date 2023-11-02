@@ -3,6 +3,7 @@ package handlers
 import (
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"net/http"
 
 	"github.com/ralphvw/sprint-planner-v2/constants"
@@ -23,6 +24,16 @@ func Login(db *sql.DB) http.HandlerFunc {
 			http.Error(w, "Invalid Input", http.StatusBadRequest)
 			return
 		}
+
+
+    requiredFields := []string{"Email", "Password"}
+    fieldsExist, missingFields := helpers.CheckFields(user, requiredFields)
+
+    if !fieldsExist {
+      helpers.LogAction(fmt.Sprintf("Missing fields: %v\n", missingFields))
+      http.Error(w, fmt.Sprintf( "Missing fields: %v\n", missingFields), http.StatusBadRequest)
+      return
+    }
 
 		authenticatedUser, err := helpers.AuthenticateUser(db, user.Email, user.Password)
 		if err != nil {
@@ -45,27 +56,12 @@ func Login(db *sql.DB) http.HandlerFunc {
 			LastName:  authenticatedUser.LastName,
 		}
 
-		result := make(map[string]interface{})
-		result["token"] = token
-		result["user"] = userResponse
-		message := "Login Successful"
-		response := models.SingleResponse{
-			Message: message,
-			Data:    result,
-		}
-
-		responseJSON, err := json.Marshal(response)
-		if err != nil {
-			helpers.LogAction(err.Error())
-			http.Error(w, "Server error", http.StatusInternalServerError)
-			return
-		}
-
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		w.Write(responseJSON)
-
-	}
+    result := make(map[string]interface{})
+    result["token"] = token
+    result["user"] = userResponse
+    message := "Login Successful"
+    helpers.SendResponse(w, r, message, result)
+  }
 }
 
 func SignUp(db *sql.DB) http.HandlerFunc {
@@ -77,6 +73,16 @@ func SignUp(db *sql.DB) http.HandlerFunc {
 			http.Error(w, "Invalid Input", http.StatusBadRequest)
 			return
 		}
+
+    requiredFields := []string{"FirstName", "LastName", "Email", "Password"}
+    fieldsExist, missingFields := helpers.CheckFields(user, requiredFields)
+
+    if !fieldsExist {
+      helpers.LogAction(fmt.Sprintf("Missing fields: %v\n", missingFields))
+      http.Error(w, fmt.Sprintf( "Missing fields: %v\n", missingFields), http.StatusBadRequest)
+      return
+    }
+
 
 		plainTextPassword := user.Password
 		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(plainTextPassword), bcrypt.DefaultCost)
@@ -107,23 +113,11 @@ func SignUp(db *sql.DB) http.HandlerFunc {
 			Email:     newUser.Email,
 		}
 
-		response := models.SingleResponse{
-			Message: "User created successfully",
-			Data:    userResponse,
-		}
-		responseJSON, err := json.Marshal(response)
-		if err != nil {
-			helpers.LogAction(err.Error())
-			http.Error(w, "Server error", http.StatusInternalServerError)
-			return
-		}
+    message := "User created successfully"
 
-		helpers.LogAction("User created successfully: " + newUser.Email)
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		w.Write(responseJSON)
+    helpers.SendResponse(w, r, message, userResponse)
 
-	}
+  }
 }
 
 func SendResetMail(db *sql.DB) http.HandlerFunc {
@@ -135,6 +129,16 @@ func SendResetMail(db *sql.DB) http.HandlerFunc {
 			http.Error(w, "Invalid Input", http.StatusBadRequest)
 			return
 		}
+
+    requiredFields := []string{"Email"}
+    fieldsExist, missingFields := helpers.CheckFields(user, requiredFields)
+
+    if !fieldsExist {
+      helpers.LogAction(fmt.Sprintf("Missing fields: %v\n", missingFields))
+      http.Error(w, fmt.Sprintf( "Missing fields: %v\n", missingFields), http.StatusBadRequest)
+      return
+    }
+
 
 		var res models.User
 
@@ -163,24 +167,55 @@ func SendResetMail(db *sql.DB) http.HandlerFunc {
 			return
 		}
 
-		result := make(map[string]interface{})
+    result := make(map[string]interface{})
 		result["token"] = token
 		message := "Reset Password Email Sent"
 
-		response := models.SingleResponse{
-			Message: message,
-			Data:    result,
-		}
+    helpers.SendResponse(w, r, message, result)
 
-		responseJSON, err := json.Marshal(response)
-		if err != nil {
-			helpers.LogAction(err.Error())
-			http.Error(w, "Server Error", http.StatusInternalServerError)
-			return
 		}
+}
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		w.Write(responseJSON)
-	}
+  func ResetPassword(db *sql.DB) http.HandlerFunc {
+    
+    return func(w http.ResponseWriter, r *http.Request) {
+      var body models.TokenBody
+      err := json.NewDecoder(r.Body).Decode(&body)
+      if err != nil {
+        helpers.LogAction("Error: Reset Password: "+err.Error())
+        http.Error(w, "Invalid Input", http.StatusBadRequest)
+        return
+      }   
+      requiredFields := []string{"Token", "Password"}
+      fieldsExist, missingFields := helpers.CheckFields(body, requiredFields)
+
+    if !fieldsExist {
+      helpers.LogAction(fmt.Sprintf("Missing fields: %v\n", missingFields))
+      http.Error(w, fmt.Sprintf( "Missing fields: %v\n", missingFields), http.StatusBadRequest)
+      return
+    }
+      token := body.Token
+      password := body.Password
+      claims, err := helpers.DecodeToken(token)
+      email := claims["email"]
+      hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+      row := db.QueryRow(queries.ResetPassword, hashedPassword, email) 
+      var user  models.User
+      e := row.Scan(&user.Email)
+      if e != nil {
+          if e == sql.ErrNoRows {
+            helpers.LogAction("User not found "+user.Email)
+            http.Error(w, "User does not exist", http.StatusNotFound)
+            return
+          }
+      }
+
+      result := make(map[string]interface{})
+      result["email"] = email
+      message := "Password reset successfully"
+      
+      helpers.SendResponse(w, r, message, result)
+    }
+
+
 }

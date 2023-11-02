@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"reflect"
 	"time"
 
 	"github.com/ralphvw/sprint-planner-v2/models"
@@ -134,4 +135,44 @@ func GetSingleDataHandler(w http.ResponseWriter, r *http.Request, db *sql.DB, qu
 	w.WriteHeader(http.StatusOK)
 	w.Write(responseJSON)
 
+}
+
+func SendResponse(w http.ResponseWriter, r *http.Request, message string, data interface{}) {
+  response := models.SingleResponse{
+    Message: message,
+    Data: data,
+  }
+
+  jsonResponse, err := json.Marshal(response)
+  if err != nil {
+    LogAction(err.Error())
+    http.Error(w, "Server Error", http.StatusInternalServerError)
+    return
+  }
+
+  w.Header().Set("Content-Type", "application/json")
+  w.WriteHeader(http.StatusOK)
+  w.Write(jsonResponse)
+}
+
+func CheckFields(obj interface{}, fields []string) (bool, []string) {
+  objValue := reflect.ValueOf(obj)
+  var missingFields []string
+
+  for _, field := range fields {
+    fieldValue := objValue.FieldByName(field)
+
+    if !fieldValue.IsValid() {
+      missingFields = append(missingFields, field)
+    } else {
+      zeroValue := reflect.Zero(fieldValue.Type())
+      if reflect.DeepEqual(fieldValue.Interface(), zeroValue.Interface()) {
+        missingFields = append(missingFields, field)
+      }
+    }
+  }
+
+  fieldsExist := len(missingFields) == 0
+
+  return fieldsExist, missingFields
 }
