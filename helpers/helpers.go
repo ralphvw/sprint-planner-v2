@@ -31,7 +31,7 @@ func LogAction(message string) {
 	fmt.Println(message)
 }
 
-func GetDataHandler(w http.ResponseWriter, r *http.Request, db *sql.DB, pageSize int, page int, query string, countQuery string, message string, args []interface{}, destinations ...interface{}) {
+func GetDataHandler(w http.ResponseWriter, r *http.Request, db *sql.DB, pageSize int, page int, query string, countQuery string, message string, args []interface{}, keys []string, destinations ...interface{}) {
 	offset := (page - 1) * pageSize
 
 	queryString := fmt.Sprintf("%s LIMIT %d OFFSET %d", query, pageSize, offset)
@@ -57,15 +57,9 @@ func GetDataHandler(w http.ResponseWriter, r *http.Request, db *sql.DB, pageSize
 
 		result := make(map[string]interface{})
 
-		for i := 0; i < len(destinations); i += 2 {
-			key, ok := destinations[i].(string)
-			if !ok {
-				LogAction("Invalid key type")
-
-				http.Error(w, SERVER_ERROR, http.StatusInternalServerError)
-				return
-			}
-			value := destinations[i+1]
+		for i := 0; i < len(destinations); i += 1 {
+			key := keys[i]
+			value := destinations[i]
 			result[key] = value
 		}
 
@@ -99,7 +93,7 @@ func GetDataHandler(w http.ResponseWriter, r *http.Request, db *sql.DB, pageSize
 	w.Write(responseJSON)
 }
 
-func GetSingleDataHandler(w http.ResponseWriter, r *http.Request, db *sql.DB, query string, message string, args []interface{}, destinations ...interface{}) {
+func GetSingleDataHandler(w http.ResponseWriter, r *http.Request, db *sql.DB, query string, message string, args []interface{}, keys []string, destinations ...interface{}) {
 	row := db.QueryRow(query, args...)
 
 	if err := row.Scan(destinations...); err != nil {
@@ -110,13 +104,8 @@ func GetSingleDataHandler(w http.ResponseWriter, r *http.Request, db *sql.DB, qu
 	result := make(map[string]interface{})
 
 	for i := 0; i < len(destinations); i += 2 {
-		key, ok := destinations[i].(string)
-		if !ok {
-			LogAction("Invalid key type")
-			http.Error(w, SERVER_ERROR, http.StatusInternalServerError)
-			return
-		}
-		value := destinations[i+1]
+		key := keys[i]
+		value := destinations[i]
 		result[key] = value
 	}
 	response := models.Response{

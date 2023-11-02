@@ -37,7 +37,7 @@ func Login(db *sql.DB) http.HandlerFunc {
 
 		authenticatedUser, err := helpers.AuthenticateUser(db, user.Email, user.Password)
 		if err != nil {
-			helpers.LogAction("Invalid Credentials" + user.Email)
+			helpers.LogAction("Invalid Credentials " + user.Email)
 			http.Error(w, "Invalid credentials", http.StatusUnauthorized)
 			return
 		}
