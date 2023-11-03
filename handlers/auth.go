@@ -60,6 +60,8 @@ func Login(db *sql.DB) http.HandlerFunc {
     result["token"] = token
     result["user"] = userResponse
     message := "Login Successful"
+
+    helpers.LogAction("Login Successful: " +authenticatedUser.Email)
     helpers.SendResponse(w, r, message, result)
   }
 }
@@ -115,6 +117,7 @@ func SignUp(db *sql.DB) http.HandlerFunc {
 
     message := "User created successfully"
 
+    helpers.LogAction("User created: " +newUser.Email)
     helpers.SendResponse(w, r, message, userResponse)
 
   }
@@ -171,6 +174,8 @@ func SendResetMail(db *sql.DB) http.HandlerFunc {
 		result["token"] = token
 		message := "Reset Password Email Sent"
 
+    helpers.LogAction("Reset password email sent: " +res.Email)
+
     helpers.SendResponse(w, r, message, result)
 
 		}
@@ -213,6 +218,8 @@ func SendResetMail(db *sql.DB) http.HandlerFunc {
       result := make(map[string]interface{})
       result["email"] = email
       message := "Password reset successfully"
+
+      helpers.LogAction("Password reset: " +user.Email)
       
       helpers.SendResponse(w, r, message, result)
     }
