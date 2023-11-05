@@ -25,15 +25,14 @@ func Login(db *sql.DB) http.HandlerFunc {
 			return
 		}
 
+		requiredFields := []string{"Email", "Password"}
+		fieldsExist, missingFields := helpers.CheckFields(user, requiredFields)
 
-    requiredFields := []string{"Email", "Password"}
-    fieldsExist, missingFields := helpers.CheckFields(user, requiredFields)
-
-    if !fieldsExist {
-      helpers.LogAction(fmt.Sprintf("Missing fields: %v\n", missingFields))
-      http.Error(w, fmt.Sprintf( "Missing fields: %v\n", missingFields), http.StatusBadRequest)
-      return
-    }
+		if !fieldsExist {
+			helpers.LogAction(fmt.Sprintf("Missing fields: %v\n", missingFields))
+			http.Error(w, fmt.Sprintf("Missing fields: %v\n", missingFields), http.StatusBadRequest)
+			return
+		}
 
 		authenticatedUser, err := helpers.AuthenticateUser(db, user.Email, user.Password)
 		if err != nil {
@@ -56,14 +55,15 @@ func Login(db *sql.DB) http.HandlerFunc {
 			LastName:  authenticatedUser.LastName,
 		}
 
-    result := make(map[string]interface{})
-    result["token"] = token
-    result["user"] = userResponse
-    message := "Login Successful"
+		result := make(map[string]interface{})
+		result["token"] = token
+		result["user"] = userResponse
+		message := "Login Successful"
 
-    helpers.LogAction("Login Successful: " +authenticatedUser.Email)
-    helpers.SendResponse(w, r, message, result)
-  }
+		helpers.EnableCors(w)
+		helpers.LogAction("Login Successful: " + authenticatedUser.Email)
+		helpers.SendResponse(w, r, message, result)
+	}
 }
 
 func SignUp(db *sql.DB) http.HandlerFunc {
@@ -76,15 +76,14 @@ func SignUp(db *sql.DB) http.HandlerFunc {
 			return
 		}
 
-    requiredFields := []string{"FirstName", "LastName", "Email", "Password"}
-    fieldsExist, missingFields := helpers.CheckFields(user, requiredFields)
+		requiredFields := []string{"FirstName", "LastName", "Email", "Password"}
+		fieldsExist, missingFields := helpers.CheckFields(user, requiredFields)
 
-    if !fieldsExist {
-      helpers.LogAction(fmt.Sprintf("Missing fields: %v\n", missingFields))
-      http.Error(w, fmt.Sprintf( "Missing fields: %v\n", missingFields), http.StatusBadRequest)
-      return
-    }
-
+		if !fieldsExist {
+			helpers.LogAction(fmt.Sprintf("Missing fields: %v\n", missingFields))
+			http.Error(w, fmt.Sprintf("Missing fields: %v\n", missingFields), http.StatusBadRequest)
+			return
+		}
 
 		plainTextPassword := user.Password
 		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(plainTextPassword), bcrypt.DefaultCost)
@@ -115,12 +114,13 @@ func SignUp(db *sql.DB) http.HandlerFunc {
 			Email:     newUser.Email,
 		}
 
-    message := "User created successfully"
+		message := "User created successfully"
 
-    helpers.LogAction("User created: " +newUser.Email)
-    helpers.SendResponse(w, r, message, userResponse)
+		helpers.LogAction("User created: " + newUser.Email)
+		helpers.EnableCors(w)
+		helpers.SendResponse(w, r, message, userResponse)
 
-  }
+	}
 }
 
 func SendResetMail(db *sql.DB) http.HandlerFunc {
@@ -133,15 +133,14 @@ func SendResetMail(db *sql.DB) http.HandlerFunc {
 			return
 		}
 
-    requiredFields := []string{"Email"}
-    fieldsExist, missingFields := helpers.CheckFields(user, requiredFields)
+		requiredFields := []string{"Email"}
+		fieldsExist, missingFields := helpers.CheckFields(user, requiredFields)
 
-    if !fieldsExist {
-      helpers.LogAction(fmt.Sprintf("Missing fields: %v\n", missingFields))
-      http.Error(w, fmt.Sprintf( "Missing fields: %v\n", missingFields), http.StatusBadRequest)
-      return
-    }
-
+		if !fieldsExist {
+			helpers.LogAction(fmt.Sprintf("Missing fields: %v\n", missingFields))
+			http.Error(w, fmt.Sprintf("Missing fields: %v\n", missingFields), http.StatusBadRequest)
+			return
+		}
 
 		var res models.User
 
@@ -170,79 +169,80 @@ func SendResetMail(db *sql.DB) http.HandlerFunc {
 			return
 		}
 
-    result := make(map[string]interface{})
+		result := make(map[string]interface{})
 		result["token"] = token
 		message := "Reset Password Email Sent"
 
-    helpers.LogAction("Reset password email sent: " +res.Email)
+		helpers.LogAction("Reset password email sent: " + res.Email)
+		helpers.EnableCors(w)
 
-    helpers.SendResponse(w, r, message, result)
+		helpers.SendResponse(w, r, message, result)
 
-		}
+	}
 }
 
-  func ResetPassword(db *sql.DB) http.HandlerFunc {
-    
-    return func(w http.ResponseWriter, r *http.Request) {
-      var body models.TokenBody
-      err := json.NewDecoder(r.Body).Decode(&body)
-      if err != nil {
-        helpers.LogAction("Error: Reset Password: "+err.Error())
-        http.Error(w, "Invalid Input", http.StatusBadRequest)
-        return
-      }   
-      requiredFields := []string{"Token", "Password"}
-      fieldsExist, missingFields := helpers.CheckFields(body, requiredFields)
+func ResetPassword(db *sql.DB) http.HandlerFunc {
 
-    if !fieldsExist {
-      helpers.LogAction(fmt.Sprintf("Missing fields: %v\n", missingFields))
-      http.Error(w, fmt.Sprintf( "Missing fields: %v\n", missingFields), http.StatusBadRequest)
-      return
-    }
-      token := body.Token
-      password := body.Password
-      claims, err := helpers.DecodeToken(token)
-      email := claims["email"]
-      hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
-      row := db.QueryRow(queries.ResetPassword, hashedPassword, email) 
-      var user  models.User
-      e := row.Scan(&user.Email)
-      if e != nil {
-          if e == sql.ErrNoRows {
-            helpers.LogAction("User not found "+user.Email)
-            http.Error(w, "User does not exist", http.StatusNotFound)
-            return
-          }
-      }
+	return func(w http.ResponseWriter, r *http.Request) {
+		var body models.TokenBody
+		err := json.NewDecoder(r.Body).Decode(&body)
+		if err != nil {
+			helpers.LogAction("Error: Reset Password: " + err.Error())
+			http.Error(w, "Invalid Input", http.StatusBadRequest)
+			return
+		}
+		requiredFields := []string{"Token", "Password"}
+		fieldsExist, missingFields := helpers.CheckFields(body, requiredFields)
 
-      result := make(map[string]interface{})
-      result["email"] = email
-      message := "Password reset successfully"
+		if !fieldsExist {
+			helpers.LogAction(fmt.Sprintf("Missing fields: %v\n", missingFields))
+			http.Error(w, fmt.Sprintf("Missing fields: %v\n", missingFields), http.StatusBadRequest)
+			return
+		}
+		token := body.Token
+		password := body.Password
+		claims, err := helpers.DecodeToken(token)
+		email := claims["email"]
+		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+		row := db.QueryRow(queries.ResetPassword, hashedPassword, email)
+		var user models.User
+		e := row.Scan(&user.Email)
+		if e != nil {
+			if e == sql.ErrNoRows {
+				helpers.LogAction("User not found " + user.Email)
+				http.Error(w, "User does not exist", http.StatusNotFound)
+				return
+			}
+		}
 
-      helpers.LogAction("Password reset: " +user.Email)
-      
-      helpers.SendResponse(w, r, message, result)
-    }
+		result := make(map[string]interface{})
+		result["email"] = email
+		message := "Password reset successfully"
 
+		helpers.LogAction("Password reset: " + user.Email)
+		helpers.EnableCors(w)
+
+		helpers.SendResponse(w, r, message, result)
+	}
 
 }
 
 func GetAllUsers(db *sql.DB) http.HandlerFunc {
-  return func(w http.ResponseWriter, r *http.Request) {
-    query := "SELECT id, first_name, last_name FROM users"
-    countQuery := "SELECT COUNT(*) FROM users"
-    var args []interface{}
-    var id int
-    var firstName string
-    var lastName string
-    keys := []string{
-      "id",
-      "firstName",
-      "lastName",
-    }
+	return func(w http.ResponseWriter, r *http.Request) {
+		query := "SELECT id, first_name, last_name FROM users"
+		countQuery := "SELECT COUNT(*) FROM users"
+		var args []interface{}
+		var id int
+		var firstName string
+		var lastName string
+		keys := []string{
+			"id",
+			"firstName",
+			"lastName",
+		}
 
-    message := "All users fetched successfully"
+		message := "All users fetched successfully"
 
-    helpers.GetDataHandler(w, r, db, 10, 1, query, countQuery, message, args, keys, &id, &firstName, &lastName)
-  }
+		helpers.GetDataHandler(w, r, db, 10, 1, query, countQuery, message, args, keys, &id, &firstName, &lastName)
+	}
 }

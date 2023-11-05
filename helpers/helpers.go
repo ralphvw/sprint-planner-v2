@@ -88,6 +88,7 @@ func GetDataHandler(w http.ResponseWriter, r *http.Request, db *sql.DB, pageSize
 		return
 	}
 
+	EnableCors(w)
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	w.Write(responseJSON)
@@ -121,47 +122,54 @@ func GetSingleDataHandler(w http.ResponseWriter, r *http.Request, db *sql.DB, qu
 	}
 
 	w.Header().Set("Content-Type", "application/json")
+	EnableCors(w)
 	w.WriteHeader(http.StatusOK)
 	w.Write(responseJSON)
 
 }
 
 func SendResponse(w http.ResponseWriter, r *http.Request, message string, data interface{}) {
-  response := models.SingleResponse{
-    Message: message,
-    Data: data,
-  }
+	response := models.SingleResponse{
+		Message: message,
+		Data:    data,
+	}
 
-  jsonResponse, err := json.Marshal(response)
-  if err != nil {
-    LogAction(err.Error())
-    http.Error(w, "Server Error", http.StatusInternalServerError)
-    return
-  }
+	jsonResponse, err := json.Marshal(response)
+	if err != nil {
+		LogAction(err.Error())
+		http.Error(w, "Server Error", http.StatusInternalServerError)
+		return
+	}
 
-  w.Header().Set("Content-Type", "application/json")
-  w.WriteHeader(http.StatusOK)
-  w.Write(jsonResponse)
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	w.Write(jsonResponse)
 }
 
 func CheckFields(obj interface{}, fields []string) (bool, []string) {
-  objValue := reflect.ValueOf(obj)
-  var missingFields []string
+	objValue := reflect.ValueOf(obj)
+	var missingFields []string
 
-  for _, field := range fields {
-    fieldValue := objValue.FieldByName(field)
+	for _, field := range fields {
+		fieldValue := objValue.FieldByName(field)
 
-    if !fieldValue.IsValid() {
-      missingFields = append(missingFields, field)
-    } else {
-      zeroValue := reflect.Zero(fieldValue.Type())
-      if reflect.DeepEqual(fieldValue.Interface(), zeroValue.Interface()) {
-        missingFields = append(missingFields, field)
-      }
-    }
-  }
+		if !fieldValue.IsValid() {
+			missingFields = append(missingFields, field)
+		} else {
+			zeroValue := reflect.Zero(fieldValue.Type())
+			if reflect.DeepEqual(fieldValue.Interface(), zeroValue.Interface()) {
+				missingFields = append(missingFields, field)
+			}
+		}
+	}
 
-  fieldsExist := len(missingFields) == 0
+	fieldsExist := len(missingFields) == 0
 
-  return fieldsExist, missingFields
+	return fieldsExist, missingFields
+}
+
+func EnableCors(w http.ResponseWriter) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
 }
