@@ -113,7 +113,7 @@ func SignUp(db *sql.DB) http.HandlerFunc {
 
 		if err != nil {
 			helpers.LogAction("Error: Failed to create user " + err.Error())
-			http.Error(w, "User already exists", http.StatusInternalServerError)
+			http.Error(w, "User with this email already exists", http.StatusBadRequest)
 			return
 		}
 
