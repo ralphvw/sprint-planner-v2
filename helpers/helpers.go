@@ -32,6 +32,7 @@ func LogAction(message string) {
 }
 
 func GetDataHandler(w http.ResponseWriter, r *http.Request, db *sql.DB, pageSize int, page int, query string, countQuery string, message string, args []interface{}, keys []string, destinations ...interface{}) {
+	EnableCors(w)
 	offset := (page - 1) * pageSize
 
 	queryString := fmt.Sprintf("%s LIMIT %d OFFSET %d", query, pageSize, offset)
@@ -88,13 +89,13 @@ func GetDataHandler(w http.ResponseWriter, r *http.Request, db *sql.DB, pageSize
 		return
 	}
 
-	EnableCors(w)
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	w.Write(responseJSON)
 }
 
 func GetSingleDataHandler(w http.ResponseWriter, r *http.Request, db *sql.DB, query string, message string, args []interface{}, keys []string, destinations ...interface{}) {
+	EnableCors(w)
 	row := db.QueryRow(query, args...)
 
 	if err := row.Scan(destinations...); err != nil {
@@ -122,7 +123,6 @@ func GetSingleDataHandler(w http.ResponseWriter, r *http.Request, db *sql.DB, qu
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	EnableCors(w)
 	w.WriteHeader(http.StatusOK)
 	w.Write(responseJSON)
 

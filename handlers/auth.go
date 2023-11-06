@@ -16,6 +16,7 @@ import (
 func Login(db *sql.DB) http.HandlerFunc {
 
 	return func(w http.ResponseWriter, r *http.Request) {
+		helpers.EnableCors(w)
 		var user models.User
 
 		err := json.NewDecoder(r.Body).Decode(&user)
@@ -60,7 +61,6 @@ func Login(db *sql.DB) http.HandlerFunc {
 		result["user"] = userResponse
 		message := "Login Successful"
 
-		helpers.EnableCors(w)
 		helpers.LogAction("Login Successful: " + authenticatedUser.Email)
 		helpers.SendResponse(w, r, message, result)
 	}
@@ -68,6 +68,7 @@ func Login(db *sql.DB) http.HandlerFunc {
 
 func SignUp(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		helpers.EnableCors(w)
 		var user models.User
 		err := json.NewDecoder(r.Body).Decode(&user)
 		if err != nil {
@@ -117,7 +118,6 @@ func SignUp(db *sql.DB) http.HandlerFunc {
 		message := "User created successfully"
 
 		helpers.LogAction("User created: " + newUser.Email)
-		helpers.EnableCors(w)
 		helpers.SendResponse(w, r, message, userResponse)
 
 	}
@@ -125,6 +125,7 @@ func SignUp(db *sql.DB) http.HandlerFunc {
 
 func SendResetMail(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		helpers.EnableCors(w)
 		var user models.User
 		err := json.NewDecoder(r.Body).Decode(&user)
 		if err != nil {
@@ -174,7 +175,6 @@ func SendResetMail(db *sql.DB) http.HandlerFunc {
 		message := "Reset Password Email Sent"
 
 		helpers.LogAction("Reset password email sent: " + res.Email)
-		helpers.EnableCors(w)
 
 		helpers.SendResponse(w, r, message, result)
 
@@ -184,6 +184,7 @@ func SendResetMail(db *sql.DB) http.HandlerFunc {
 func ResetPassword(db *sql.DB) http.HandlerFunc {
 
 	return func(w http.ResponseWriter, r *http.Request) {
+		helpers.EnableCors(w)
 		var body models.TokenBody
 		err := json.NewDecoder(r.Body).Decode(&body)
 		if err != nil {
@@ -220,7 +221,6 @@ func ResetPassword(db *sql.DB) http.HandlerFunc {
 		message := "Password reset successfully"
 
 		helpers.LogAction("Password reset: " + user.Email)
-		helpers.EnableCors(w)
 
 		helpers.SendResponse(w, r, message, result)
 	}
