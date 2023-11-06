@@ -16,6 +16,10 @@ import (
 func Login(db *sql.DB) http.HandlerFunc {
 
 	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == "OPTIONS" {
+			helpers.HandleOptions(w, r)
+			return
+		}
 		helpers.EnableCors(w)
 		var user models.User
 
@@ -68,6 +72,10 @@ func Login(db *sql.DB) http.HandlerFunc {
 
 func SignUp(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == "OPTIONS" {
+			helpers.HandleOptions(w, r)
+			return
+		}
 		helpers.EnableCors(w)
 		var user models.User
 		err := json.NewDecoder(r.Body).Decode(&user)
@@ -125,6 +133,10 @@ func SignUp(db *sql.DB) http.HandlerFunc {
 
 func SendResetMail(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == "OPTIONS" {
+			helpers.HandleOptions(w, r)
+			return
+		}
 		helpers.EnableCors(w)
 		var user models.User
 		err := json.NewDecoder(r.Body).Decode(&user)
@@ -184,6 +196,10 @@ func SendResetMail(db *sql.DB) http.HandlerFunc {
 func ResetPassword(db *sql.DB) http.HandlerFunc {
 
 	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == "OPTIONS" {
+			helpers.HandleOptions(w, r)
+			return
+		}
 		helpers.EnableCors(w)
 		var body models.TokenBody
 		err := json.NewDecoder(r.Body).Decode(&body)
