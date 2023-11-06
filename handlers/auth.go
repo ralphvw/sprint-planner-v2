@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/ralphvw/sprint-planner-v2/constants"
 	"github.com/ralphvw/sprint-planner-v2/helpers"
@@ -39,10 +40,10 @@ func Login(db *sql.DB) http.HandlerFunc {
 			return
 		}
 
-		authenticatedUser, err := helpers.AuthenticateUser(db, user.Email, user.Password)
+		authenticatedUser, err := helpers.AuthenticateUser(db, strings.ToLower(user.Email), user.Password)
 		if err != nil {
 			helpers.LogAction("Invalid Credentials " + user.Email)
-			http.Error(w, "Invalid credentials", http.StatusUnauthorized)
+			http.Error(w, "Invalid credentials", http.StatusBadRequest)
 			return
 		}
 
@@ -108,7 +109,7 @@ func SignUp(db *sql.DB) http.HandlerFunc {
 
 		var newUser models.User
 
-		err = db.QueryRow(query, user.FirstName, user.LastName, user.Email, user.Hash).Scan(&newUser.ID, &newUser.FirstName, &newUser.LastName, &newUser.Email)
+		err = db.QueryRow(query, user.FirstName, user.LastName, strings.ToLower(user.Email), user.Hash).Scan(&newUser.ID, &newUser.FirstName, &newUser.LastName, &newUser.Email)
 
 		if err != nil {
 			helpers.LogAction("Error: Failed to create user " + err.Error())
@@ -158,7 +159,7 @@ func SendResetMail(db *sql.DB) http.HandlerFunc {
 		var res models.User
 
 		query := queries.GetUserByEmail
-		row := db.QueryRow(query, user.Email)
+		row := db.QueryRow(query, strings.ToLower(user.Email))
 
 		e := row.Scan(&res.ID, &res.Email, &res.Hash, &res.FirstName, &res.LastName)
 		if e != nil {
@@ -220,8 +221,16 @@ func ResetPassword(db *sql.DB) http.HandlerFunc {
 		password := body.Password
 		claims, err := helpers.DecodeToken(token)
 		email := claims["email"]
+		var formattedEmail string
+		if str, ok := email.(string); ok {
+			formattedEmail = strings.ToLower(str)
+		} else {
+			helpers.LogAction("Email is not a string")
+			http.Error(w, "Server Error", http.StatusInternalServerError)
+			return
+		}
 		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
-		row := db.QueryRow(queries.ResetPassword, hashedPassword, email)
+		row := db.QueryRow(queries.ResetPassword, hashedPassword, strings.ToLower(formattedEmail))
 		var user models.User
 		e := row.Scan(&user.Email)
 		if e != nil {
