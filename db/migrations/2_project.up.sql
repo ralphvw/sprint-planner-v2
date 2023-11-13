@@ -1,0 +1,7 @@
+CREATE TABLE IF NOT EXISTS projects(
+  id SERIAL PRIMARY KEY,
+  name VARCHAR,
+  description VARCHAR,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+)
