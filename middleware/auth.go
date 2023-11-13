@@ -2,16 +2,26 @@ package middleware
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"os"
 	"strings"
 
-	"github.com/dgrijalva/jwt-go"
+	"github.com/joho/godotenv"
 	"github.com/ralphvw/sprint-planner-v2/helpers"
 )
 
-func checkToken(next http.Handler) http.Handler {
+func CheckToken(next http.Handler) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == "OPTIONS" {
+			helpers.HandleOptions(w, r)
+			return
+		}
+
+		if err := godotenv.Load(); err != nil {
+			helpers.LogAction("Error loading env file")
+		}
+
 		authHeader := r.Header.Get("Authorization")
 
 		if authHeader == "" {
@@ -22,17 +32,12 @@ func checkToken(next http.Handler) http.Handler {
 
 		tokenString := strings.Replace(authHeader, "Bearer ", "", 1)
 
-		token, err := jwt.Parse(tokenString, func(t *jwt.Token) (interface{}, error) {
-			return []byte(os.Getenv("SECRET_KEY")), nil
-		})
-
-		if err != nil || !token.Valid {
-			helpers.LogAction("INVALID TOKEN")
+		claims, err := helpers.DecodeToken(tokenString)
+		if err != nil {
+			helpers.LogAction("INVALID TOKEN" + err.Error())
 			http.Error(w, "Unauthorized: Invalid token", http.StatusUnauthorized)
 			return
 		}
-
-		claims := token.Claims.(jwt.MapClaims)
 
 		ctx := context.WithValue(r.Context(), "userClaims", claims)
 		r = r.WithContext(ctx)

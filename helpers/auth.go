@@ -6,7 +6,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/dgrijalva/jwt-go"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/ralphvw/sprint-planner-v2/models"
 	"github.com/ralphvw/sprint-planner-v2/queries"
 	"golang.org/x/crypto/bcrypt"
@@ -42,13 +42,14 @@ func comparePasswords(plain, hash string) bool {
 }
 
 func CreateToken(userId int, firstName string, lastName string, email string) (string, error) {
-	claims := &models.Claims{
+	claims := models.Claims{
 		UserID:    userId,
 		FirstName: firstName,
 		LastName:  lastName,
 		Email:     email,
-		StandardClaims: jwt.StandardClaims{
-			IssuedAt: time.Now().Unix(),
+		RegisteredClaims: jwt.RegisteredClaims{
+			IssuedAt:  jwt.NewNumericDate(time.Now()),
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(24 * time.Hour)),
 		},
 	}
 
@@ -61,14 +62,14 @@ func CreateToken(userId int, firstName string, lastName string, email string) (s
 }
 
 func DecodeToken(tokenString string) (map[string]interface{}, error) {
-  token, err := jwt.Parse(tokenString, func(t *jwt.Token) (interface{}, error) {
-      return []byte(os.Getenv("SECRET_KEY")), nil
-  }) 
+	token, err := jwt.Parse(tokenString, func(t *jwt.Token) (interface{}, error) {
+		return jwtSecret, nil
+	})
 
-  if err != nil || !token.Valid {
-    return nil, err
-  }
+	if err != nil || !token.Valid {
+		return nil, err
+	}
 
-  claims := token.Claims.(jwt.MapClaims)
-  return claims, nil
+	claims := token.Claims.(jwt.MapClaims)
+	return claims, nil
 }

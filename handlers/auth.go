@@ -183,13 +183,11 @@ func SendResetMail(db *sql.DB) http.HandlerFunc {
 			return
 		}
 
-		result := make(map[string]interface{})
-		result["token"] = token
 		message := "Reset Password Email Sent"
 
 		helpers.LogAction("Reset password email sent: " + res.Email)
 
-		helpers.SendResponse(w, r, message, result)
+		helpers.SendResponse(w, r, message, res.Email)
 
 	}
 }
@@ -220,6 +218,11 @@ func ResetPassword(db *sql.DB) http.HandlerFunc {
 		token := body.Token
 		password := body.Password
 		claims, err := helpers.DecodeToken(token)
+		if err != nil {
+			helpers.LogAction("Token decoding failed: " + err.Error())
+			http.Error(w, "Server Error", http.StatusInternalServerError)
+			return
+		}
 		email := claims["email"]
 		var formattedEmail string
 		if str, ok := email.(string); ok {

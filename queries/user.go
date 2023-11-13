@@ -5,3 +5,5 @@ var CreateUser string = `INSERT INTO users (first_name, last_name, email, hash) 
 var GetUserByEmail string = "SELECT id, email, hash, first_name, last_name FROM users WHERE email=$1"
 
 var ResetPassword string = "UPDATE users SET password=$1 WHERE email=$2 RETURNING email"
+
+var SearchUsers string = "SELECT id, email, first_name, last_name FROM users WHERE email ILIKE $1 OR first_name+last_name ILIKE $1"
