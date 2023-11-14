@@ -25,18 +25,17 @@ func AddMember(db *sql.DB, projectId string, userId int) error {
 	return err
 }
 
-func FetchProjects(db *sql.DB, ownerId int) ([]models.Project, error) {
-	var projects []models.Project
+func CheckProjectMember(db *sql.DB, userId int, projectId int) error {
+	var ownerId int
+	var id int
 
-	rows, err := db.Query(queries.FetchProjects, ownerId)
-	if err != nil {
-		return nil, err
-	}
-	for rows.Next() {
-		var project models.Project
-		rows.Scan(&project.ID, &project.Name, &project.CreatedAt)
-		projects = append(projects, project)
+	db.QueryRow(queries.CheckProjectOwner, projectId).Scan(&ownerId)
+
+	err := db.QueryRow(queries.CheckProjectMember, userId, projectId).Scan(&id)
+
+	if err == sql.ErrNoRows && userId != ownerId {
+		return err
 	}
 
-	return projects, nil
+	return nil
 }

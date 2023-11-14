@@ -5,10 +5,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"reflect"
+	"strconv"
+	"strings"
+	"time"
 
 	"github.com/ralphvw/sprint-planner-v2/helpers"
 	"github.com/ralphvw/sprint-planner-v2/middleware"
+	"github.com/ralphvw/sprint-planner-v2/queries"
 	"github.com/ralphvw/sprint-planner-v2/services"
 )
 
@@ -29,8 +32,12 @@ func AddProject(db *sql.DB) http.HandlerFunc {
 		}
 
 		if r.Method == "GET" {
-			helpers.LogAction(fmt.Sprintf("Claims part 2: %v", claims))
-			helpers.LogAction(reflect.TypeOf(claims["id"]).String())
+			page, err := strconv.Atoi(r.URL.Query().Get("page"))
+			if err != nil {
+				helpers.LogAction("Error converting query to int: " + err.Error())
+				http.Error(w, "Page number missing", http.StatusBadRequest)
+				return
+			}
 			ownerId, ok := claims["id"].(float64)
 			if !ok {
 				helpers.LogAction("Wrong type assertion")
@@ -38,17 +45,22 @@ func AddProject(db *sql.DB) http.HandlerFunc {
 				return
 			}
 
-			results, err := services.FetchProjects(db, int(ownerId))
-			if err != nil {
-				helpers.LogAction("Get Projects: " + err.Error())
-				http.Error(w, "Server Error", http.StatusInternalServerError)
-				return
+			args := []interface{}{
+				int(ownerId),
+			}
+
+			var id int
+			var name string
+			var createdAt time.Time
+
+			keys := []string{
+				"id",
+				"name",
+				"createdAt",
 			}
 
 			message := "Projects fetched successfully"
-			helpers.LogAction("Projects fetched for userID: " + fmt.Sprintf("%d", int(ownerId)))
-
-			helpers.SendResponse(w, r, message, results)
+			helpers.GetDataHandler(w, r, db, 10, page, queries.FetchProjects, queries.CountProjects, message, args, keys, &id, &name, &createdAt)
 			return
 		}
 
@@ -102,5 +114,81 @@ func AddProject(db *sql.DB) http.HandlerFunc {
 		helpers.LogAction("Project added successfully: " + "name: " + result["name"] + "id: " + result["id"])
 
 		helpers.SendResponse(w, r, message, result)
+	}))
+}
+
+func SingleProject(db *sql.DB) http.HandlerFunc {
+	return middleware.CheckToken(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == "OPTIONS" {
+			helpers.HandleOptions(w, r)
+			return
+		}
+
+		claims, ok := r.Context().Value("userClaims").(map[string]interface{})
+
+		if !ok {
+			helpers.LogAction("Errors extracting user claims")
+			http.Error(w, "Server Error", http.StatusInternalServerError)
+			return
+		}
+
+		if r.Method == "GET" {
+			userId, ok := claims["id"].(float64)
+			if !ok {
+				helpers.LogAction("Wrong type assertion for claims")
+				http.Error(w, "Server Error", http.StatusInternalServerError)
+				return
+			}
+
+			projectId := strings.TrimPrefix(r.URL.Path, "/project/")
+
+			if projectId == "" {
+				helpers.LogAction("Invalid URL Path: Missing id argument")
+				http.Error(w, "Invalid URL Pah: Missing id argument", http.StatusBadRequest)
+				return
+			}
+
+			projectID, err := strconv.Atoi(projectId)
+
+			if err != nil {
+				helpers.LogAction("Error typecasting to int")
+				http.Error(w, "Server Error", http.StatusInternalServerError)
+				return
+			}
+
+			e := services.CheckProjectMember(db, int(userId), projectID)
+
+			if e != nil {
+				helpers.LogAction(fmt.Sprintf("Attempt to view project without membership %d", int(userId)))
+				http.Error(w, "Unauthorized Request", http.StatusUnauthorized)
+				return
+			}
+
+			message := "Project fetched successfully"
+
+			var id int
+			var name string
+			var description string
+			var createdAt time.Time
+			var memberCount int
+			var members *json.RawMessage
+			var owner json.RawMessage
+
+			keys := []string{
+				"id",
+				"name",
+				"description",
+				"createdAt",
+				"memberCount",
+				"members",
+				"owner",
+			}
+
+			args := []interface{}{
+				projectID,
+			}
+
+			helpers.GetSingleDataHandler(w, r, db, queries.GetSingleProject, message, args, keys, &id, &name, &description, &createdAt, &memberCount, &members, &owner)
+		}
 	}))
 }

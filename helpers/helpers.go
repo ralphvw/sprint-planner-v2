@@ -55,19 +55,20 @@ func GetDataHandler(w http.ResponseWriter, r *http.Request, db *sql.DB, pageSize
 			http.Error(w, SERVER_ERROR, http.StatusInternalServerError)
 			return
 		}
-
 		result := make(map[string]interface{})
 
 		for i := 0; i < len(destinations); i += 1 {
 			key := keys[i]
-			value := destinations[i]
+			value := reflect.Indirect(reflect.ValueOf(destinations[i])).Interface()
 			result[key] = value
 		}
 
 		results = append(results, result)
+
 	}
+
 	totalRows := 0
-	err = db.QueryRow(countQuery).Scan(&totalRows)
+	err = db.QueryRow(countQuery, args...).Scan(&totalRows)
 	if err != nil {
 		LogAction(err.Error())
 		http.Error(w, SERVER_ERROR, http.StatusInternalServerError)
@@ -98,23 +99,29 @@ func GetSingleDataHandler(w http.ResponseWriter, r *http.Request, db *sql.DB, qu
 	EnableCors(w)
 	row := db.QueryRow(query, args...)
 
-	if err := row.Scan(destinations...); err != nil {
-		LogAction(err.Error())
-		http.Error(w, SERVER_ERROR, http.StatusInternalServerError)
+	err := row.Scan(destinations...)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			http.Error(w, "Resource does not exist", http.StatusBadRequest)
+			return
+		}
+
+		LogAction("Single Data Handler: " + err.Error())
+		http.Error(w, "Server Error", http.StatusInternalServerError)
 		return
 	}
 	result := make(map[string]interface{})
 
-	for i := 0; i < len(destinations); i += 2 {
+	for i := 0; i < len(destinations); i += 1 {
 		key := keys[i]
 		value := destinations[i]
 		result[key] = value
 	}
-	response := models.Response{
-		Message: message,
-		Data:    result,
-	}
 
+	response := map[string]interface{}{
+		"message": message,
+		"data":    result,
+	}
 	responseJSON, err := json.Marshal(response)
 	if err != nil {
 		LogAction(err.Error())
