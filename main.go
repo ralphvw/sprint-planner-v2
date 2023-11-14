@@ -32,6 +32,7 @@ func main() {
 	http.HandleFunc("/users", handlers.SearchUsers(db))
 	http.HandleFunc("/projects", handlers.AddProject(db))
 	http.HandleFunc("/project/", handlers.SingleProject(db))
+	http.HandleFunc("/project/member", handlers.AddMember(db))
 	err := http.ListenAndServe(":"+port, nil)
 	if err != nil {
 		log.Fatal("Server error:", err)

@@ -5,6 +5,8 @@ var AddMember string = "INSERT INTO project_members(project_id, user_id) VALUES(
 
 var FetchProjects string = "SELECT id, name, created_at from projects WHERE owner_id=$1"
 
+var RemoveMember string = "DELETE FROM project_members WHERE user_id=$1 AND project_id=$2"
+
 var CountProjects string = "SELECT COUNT(*) FROM projects WHERE owner_id=$1"
 
 var CheckProjectMember string = "SELECT id FROM project_members WHERE user_id=$1 AND project_id=$2"

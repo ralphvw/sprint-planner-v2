@@ -100,8 +100,16 @@ func AddProject(db *sql.DB) http.HandlerFunc {
 			return
 		}
 
+		res, ok := result["id"].(int)
+
+		if !ok {
+			helpers.LogAction("Error converting projectId into an int")
+			http.Error(w, "Server Error", http.StatusInternalServerError)
+			return
+		}
+
 		for _, userId := range requestPayload.UserIDs {
-			err := services.AddMember(db, result["id"], userId)
+			err := services.AddMember(db, res, userId)
 			if err != nil {
 				helpers.LogAction("Add Project Member: " + err.Error())
 				http.Error(w, "Server Error", http.StatusInternalServerError)
@@ -111,7 +119,7 @@ func AddProject(db *sql.DB) http.HandlerFunc {
 
 		message := "Project added successfully"
 
-		helpers.LogAction("Project added successfully: " + "name: " + result["name"] + "id: " + result["id"])
+		helpers.LogAction("Project added successfully")
 
 		helpers.SendResponse(w, r, message, result)
 	}))
@@ -160,7 +168,7 @@ func SingleProject(db *sql.DB) http.HandlerFunc {
 
 			if e != nil {
 				helpers.LogAction(fmt.Sprintf("Attempt to view project without membership %d", int(userId)))
-				http.Error(w, "Unauthorized Request", http.StatusUnauthorized)
+				http.Error(w, "Forbidden Request", http.StatusForbidden)
 				return
 			}
 
@@ -190,5 +198,93 @@ func SingleProject(db *sql.DB) http.HandlerFunc {
 
 			helpers.GetSingleDataHandler(w, r, db, queries.GetSingleProject, message, args, keys, &id, &name, &description, &createdAt, &memberCount, &members, &owner)
 		}
+	}))
+}
+
+func AddMember(db *sql.DB) http.HandlerFunc {
+	return middleware.CheckToken(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == "OPTIONS" {
+			helpers.HandleOptions(w, r)
+			return
+		}
+
+		helpers.EnableCors(w)
+
+		claims, ok := r.Context().Value("userClaims").(map[string]interface{})
+		if !ok {
+			helpers.LogAction("Error extracting user claims")
+			http.Error(w, "Server Error", http.StatusInternalServerError)
+			return
+		}
+		userId, ok := claims["id"].(float64)
+		if !ok {
+			helpers.LogAction("Wrong type assertion for claims")
+			http.Error(w, "Server Error", http.StatusInternalServerError)
+			return
+		}
+
+		var requestPayload struct {
+			ProjectId int `json:"projectId"`
+			UserId    int `json:"userId"`
+		}
+		err := json.NewDecoder(r.Body).Decode(&requestPayload)
+		if err != nil {
+			helpers.LogAction("Bad Request: Add Project Handler" + err.Error())
+			http.Error(w, "Invalid request body", http.StatusBadRequest)
+			return
+		}
+
+		requiredFields := []string{"ProjectId", "UserId"}
+		fieldsExist, missingFields := helpers.CheckFields(requestPayload, requiredFields)
+
+		if !fieldsExist {
+			helpers.LogAction(fmt.Sprintf("Missing fields: %v\n", missingFields))
+			http.Error(w, fmt.Sprintf("Missing fields: %v\n", missingFields), http.StatusBadRequest)
+			return
+		}
+
+		e := services.CheckProjectOwner(db, int(userId), requestPayload.ProjectId)
+
+		if e != nil {
+			helpers.LogAction(fmt.Sprintf("Attempt to view project without membership %d", int(userId)))
+			http.Error(w, "Forbidden Request", http.StatusForbidden)
+			return
+		}
+
+		if r.Method == "DELETE" {
+			er := services.DeleteMember(db, requestPayload.UserId, requestPayload.ProjectId)
+			if er != nil {
+				helpers.LogAction("Error deleting member " + err.Error())
+				http.Error(w, "Server Error", http.StatusInternalServerError)
+				return
+			}
+
+			result := map[string]interface{}{
+				"userId":    requestPayload.UserId,
+				"projectId": requestPayload.ProjectId,
+			}
+
+			message := "Member removed sucessfully"
+			helpers.LogAction("Member removed successfully to project")
+			helpers.SendResponse(w, r, message, result)
+			return
+		}
+
+		er := services.AddMember(db, requestPayload.ProjectId, requestPayload.UserId)
+		if er != nil {
+			helpers.LogAction("Add Project Member: " + err.Error())
+			http.Error(w, "Server Error", http.StatusInternalServerError)
+			return
+		}
+
+		result := map[string]interface{}{
+			"userId":    requestPayload.UserId,
+			"projectId": requestPayload.ProjectId,
+		}
+
+		message := "Member added sucessfully"
+		helpers.LogAction("Member added successfully to project")
+		helpers.SendResponse(w, r, message, result)
+
 	}))
 }
