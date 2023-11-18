@@ -3,7 +3,10 @@ package services
 import (
 	"database/sql"
 	"errors"
+	"fmt"
+	"reflect"
 
+	"github.com/ralphvw/sprint-planner-v2/helpers"
 	"github.com/ralphvw/sprint-planner-v2/models"
 	"github.com/ralphvw/sprint-planner-v2/queries"
 )
@@ -57,4 +60,45 @@ func CheckProjectOwner(db *sql.DB, userId int, projectId int) error {
 	}
 
 	return nil
+}
+
+func GetProjectMembers(db *sql.DB, projectId int) ([]map[string]interface{}, error) {
+	var results []map[string]interface{}
+
+	var user models.User
+
+	rows, err := db.Query(queries.GetProjectMembers, projectId)
+
+	if err != nil {
+		return nil, err
+	}
+
+	for rows.Next() {
+		err := rows.Scan(&user.ID, &user.FirstName, &user.LastName, &user.Email)
+		if err != nil {
+			return nil, err
+		}
+
+		result := map[string]interface{}{
+			"id":        reflect.Indirect(reflect.ValueOf(user.ID)).Interface(),
+			"firstName": reflect.Indirect(reflect.ValueOf(user.FirstName)).Interface(),
+			"lastName":  helpers.GetPointerValue(user.LastName),
+		}
+
+		helpers.LogAction(fmt.Sprintf("%v", result))
+
+		results = append(results, result)
+	}
+
+	var owner models.User
+	db.QueryRow(queries.GetProjectOwner, projectId).Scan(&owner.ID, &owner.FirstName, &owner.LastName, &owner.Email)
+
+	ownerResult := map[string]interface{}{
+		"id":        owner.ID,
+		"firstName": owner.FirstName,
+		"lastName":  owner.LastName,
+	}
+
+	results = append(results, ownerResult)
+	return results, nil
 }

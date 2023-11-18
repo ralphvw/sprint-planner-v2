@@ -270,6 +270,13 @@ func AddMember(db *sql.DB) http.HandlerFunc {
 			return
 		}
 
+		errr := services.CheckProjectMember(db, requestPayload.UserId, requestPayload.ProjectId)
+
+		if errr == nil {
+			helpers.LogAction("Attempt to add an already existing member")
+			http.Error(w, "User is already a project member", http.StatusConflict)
+			return
+		}
 		er := services.AddMember(db, requestPayload.ProjectId, requestPayload.UserId)
 		if er != nil {
 			helpers.LogAction("Add Project Member: " + err.Error())
@@ -287,4 +294,57 @@ func AddMember(db *sql.DB) http.HandlerFunc {
 		helpers.SendResponse(w, r, message, result)
 
 	}))
+}
+
+func GetMembers(db *sql.DB) http.HandlerFunc {
+	return middleware.CheckToken(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == "OPTIONS" {
+			helpers.HandleOptions(w, r)
+			return
+		}
+
+		helpers.EnableCors(w)
+
+		claims, ok := r.Context().Value("userClaims").(map[string]interface{})
+		if !ok {
+			helpers.LogAction("Error extracting user claims")
+			http.Error(w, "Server Error", http.StatusInternalServerError)
+			return
+		}
+		userId, ok := claims["id"].(float64)
+		if !ok {
+			helpers.LogAction("Wrong type assertion for claims")
+			http.Error(w, "Server Error", http.StatusInternalServerError)
+			return
+		}
+
+		projectId, err := strconv.Atoi(r.URL.Query().Get("projectId"))
+		if err != nil {
+			helpers.LogAction("Error converting query to int: " + err.Error())
+			http.Error(w, "Page number missing", http.StatusBadRequest)
+			return
+		}
+		e := services.CheckProjectMember(db, int(userId), projectId)
+
+		if e != nil {
+			helpers.LogAction(fmt.Sprintf("Attempt to view project without membership %d", int(userId)))
+			http.Error(w, "Forbidden Request", http.StatusForbidden)
+			return
+		}
+
+		result, err := services.GetProjectMembers(db, projectId)
+
+		if err != nil {
+			helpers.LogAction("Get Project Members Handler: " + err.Error())
+			http.Error(w, "Server Error", http.StatusInternalServerError)
+			return
+		}
+
+		message := "Members fetched successfully"
+
+		helpers.LogAction(fmt.Sprintf("Members fetched for: %d", projectId))
+		helpers.SendResponse(w, r, message, result)
+
+	}))
+
 }

@@ -40,3 +40,13 @@ FROM projects p
  WHERE p.id=$1
  GROUP BY p.id, p.name, p.description, p.created_at, o.id, o.first_name, o.last_name
 `
+
+var GetProjectMembers string = `SELECT u.id, u.first_name, u.last_name, u.email FROM project_members pm 
+LEFT JOIN users u ON pm.user_id = u.id
+WHERE pm.project_id=$1
+`
+
+var GetProjectOwner string = `SELECT u.id, u.first_name, u.last_name, u.email FROM projects p
+LEFT JOIN users u ON u.id = p.owner_id
+WHERE p.id=$1
+`

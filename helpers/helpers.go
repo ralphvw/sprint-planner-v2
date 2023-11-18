@@ -188,3 +188,7 @@ func HandleOptions(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusOK)
 }
+
+func GetPointerValue(pointer interface{}) any {
+	return reflect.Indirect(reflect.ValueOf(pointer)).Interface()
+}
