@@ -27,7 +27,7 @@ func AddSprint(db *sql.DB, name string, judge int, projectId int) (map[string]in
 }
 
 func AddSprintMember(db *sql.DB, userId int, designation string, sprintId interface{}) error {
-	_, err := db.Exec(queries.AddSprintMember, userId, designation)
+	_, err := db.Exec(queries.AddSprintMember, userId, designation, sprintId)
 	if err != nil {
 		return err
 	}

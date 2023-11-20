@@ -52,15 +52,17 @@ func AddProject(db *sql.DB) http.HandlerFunc {
 			var id int
 			var name string
 			var createdAt time.Time
+			var plans int
 
 			keys := []string{
 				"id",
 				"name",
 				"createdAt",
+				"plans",
 			}
 
 			message := "Projects fetched successfully"
-			helpers.GetDataHandler(w, r, db, 10, page, queries.FetchProjects, queries.CountProjects, message, args, keys, &id, &name, &createdAt)
+			helpers.GetDataHandler(w, r, db, 10, page, queries.FetchProjects, queries.CountProjects, message, args, keys, &id, &name, &createdAt, &plans)
 			return
 		}
 

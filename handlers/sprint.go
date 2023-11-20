@@ -39,13 +39,13 @@ func AddSprint(db *sql.DB) http.HandlerFunc {
 		if r.Method == "GET" {
 			projectId, err := strconv.Atoi(r.URL.Query().Get("projectId"))
 			if err != nil {
-				helpers.LogAction("Error converting query to int: " + err.Error())
+				helpers.LogAction("Error converting projectId to int: " + err.Error())
 				http.Error(w, "ProjectId missing", http.StatusBadRequest)
 				return
 			}
 			page, err := strconv.Atoi(r.URL.Query().Get("page"))
 			if err != nil {
-				helpers.LogAction("Error converting query to int: " + err.Error())
+				helpers.LogAction("Error converting page to int: " + err.Error())
 				http.Error(w, "Page number missing", http.StatusBadRequest)
 				return
 			}
