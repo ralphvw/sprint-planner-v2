@@ -1,0 +1,9 @@
+CREATE TABLE IF NOT EXISTS sprints(
+  id SERIAL PRIMARY KEY,
+  name VARCHAR,
+  judge INT REFERENCES users (id) ON DELETE CASCADE,
+  completed BOOLEAN DEFAULT false,
+  project_id INT REFERENCES projects(id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+)

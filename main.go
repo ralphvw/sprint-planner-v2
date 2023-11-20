@@ -34,6 +34,7 @@ func main() {
 	http.HandleFunc("/project/", handlers.SingleProject(db))
 	http.HandleFunc("/project/member", handlers.AddMember(db))
 	http.HandleFunc("/project/members", handlers.GetMembers(db))
+	http.HandleFunc("/sprints", handlers.AddSprint(db))
 	err := http.ListenAndServe(":"+port, nil)
 	if err != nil {
 		log.Fatal("Server error:", err)
