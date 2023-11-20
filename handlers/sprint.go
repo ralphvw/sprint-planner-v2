@@ -72,7 +72,7 @@ func AddSprint(db *sql.DB) http.HandlerFunc {
 
 			message := "Sprints fetched successfully"
 			helpers.GetDataHandler(w, r, db, 10, page, queries.GetSprints, queries.CountSprints, message, args, keys, &id, &name)
-
+			return
 		}
 
 		var requestPayload struct {
