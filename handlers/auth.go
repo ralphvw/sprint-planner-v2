@@ -232,7 +232,7 @@ func ResetPassword(db *sql.DB) http.HandlerFunc {
 			http.Error(w, "Server Error", http.StatusInternalServerError)
 			return
 		}
-		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+		hashedPassword, _ := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 		row := db.QueryRow(queries.ResetPassword, hashedPassword, strings.ToLower(formattedEmail))
 		var user models.User
 		e := row.Scan(&user.Email)
