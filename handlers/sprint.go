@@ -50,6 +50,9 @@ func AddSprint(db *sql.DB) http.HandlerFunc {
 				return
 			}
 
+			search := r.URL.Query().Get("search")
+			searchTerm := "%" + search + "%"
+
 			e := services.CheckProjectOwner(db, int(userId), projectId)
 
 			if e != nil {
@@ -60,6 +63,7 @@ func AddSprint(db *sql.DB) http.HandlerFunc {
 
 			args := []interface{}{
 				projectId,
+				searchTerm,
 			}
 
 			var id int

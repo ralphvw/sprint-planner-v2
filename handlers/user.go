@@ -18,11 +18,6 @@ func SearchUsers(db *sql.DB) http.HandlerFunc {
 
 		helpers.EnableCors(w)
 		searchTerm := r.URL.Query().Get("search")
-		if searchTerm == "" {
-			helpers.LogAction("Missing query param for Get all users")
-			http.Error(w, "Missing 'search' query param", http.StatusBadRequest)
-			return
-		}
 		var users []models.User
 
 		rows, err := db.Query(queries.SearchUsers, "%"+searchTerm+"%")
