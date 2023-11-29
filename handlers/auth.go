@@ -176,7 +176,9 @@ func SendResetMail(db *sql.DB) http.HandlerFunc {
 			return
 		}
 
-		emailerr := helpers.SendMail(constants.ResetPasswordEmail(res.FirstName, token), "Reset Password", res.Email, res.FirstName)
+		link := "https://thesprint.vercel.app/" + token
+
+		emailerr := helpers.SendMail(constants.ResetPasswordEmail(res.FirstName, link), "Reset Password", res.Email, res.FirstName)
 
 		if emailerr != nil {
 			http.Error(w, "Email could not be sent", http.StatusInternalServerError)
