@@ -209,6 +209,8 @@ func ResetPassword(db *sql.DB) http.HandlerFunc {
 			http.Error(w, "Invalid Input", http.StatusBadRequest)
 			return
 		}
+		helpers.LogAction(fmt.Sprintf("Body: %v", body))
+
 		requiredFields := []string{"Token", "Password"}
 		fieldsExist, missingFields := helpers.CheckFields(body, requiredFields)
 
@@ -225,6 +227,8 @@ func ResetPassword(db *sql.DB) http.HandlerFunc {
 			http.Error(w, "Server Error", http.StatusInternalServerError)
 			return
 		}
+
+		helpers.LogAction(fmt.Sprintf("Claims: %v", claims))
 		email := claims["email"]
 		var formattedEmail string
 		if str, ok := email.(string); ok {
@@ -234,13 +238,14 @@ func ResetPassword(db *sql.DB) http.HandlerFunc {
 			http.Error(w, "Server Error", http.StatusInternalServerError)
 			return
 		}
+		var returnedEmail string
 		hashedPassword, _ := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
-		row := db.QueryRow(queries.ResetPassword, hashedPassword, strings.ToLower(formattedEmail))
-		var user models.User
-		e := row.Scan(&user.Email)
+		helpers.LogAction(fmt.Sprintf("Formatted Email: %v", formattedEmail))
+		e := db.QueryRow(queries.ResetPassword, hashedPassword, formattedEmail).Scan(&returnedEmail)
+		helpers.LogAction(fmt.Sprintf("Email: %v", returnedEmail))
 		if e != nil {
 			if e == sql.ErrNoRows {
-				helpers.LogAction("User not found " + user.Email)
+				helpers.LogAction("User not found " + formattedEmail)
 				http.Error(w, "User does not exist", http.StatusNotFound)
 				return
 			}
@@ -250,7 +255,7 @@ func ResetPassword(db *sql.DB) http.HandlerFunc {
 		result["email"] = email
 		message := "Password reset successfully"
 
-		helpers.LogAction("Password reset: " + user.Email)
+		helpers.LogAction("Password reset: " + returnedEmail)
 
 		helpers.SendResponse(w, r, message, result)
 	}
