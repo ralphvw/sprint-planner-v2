@@ -176,7 +176,7 @@ func SendResetMail(db *sql.DB) http.HandlerFunc {
 			return
 		}
 
-		link := "https://thesprint.vercel.app/" + token
+		link := "https://thesprint.vercel.app/auth/forgot-password/reset?token=" + token
 
 		emailerr := helpers.SendMail(constants.ResetPasswordEmail(res.FirstName, link), "Reset Password", res.Email, res.FirstName)
 
