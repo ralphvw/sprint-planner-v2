@@ -45,8 +45,12 @@ func AddProject(db *sql.DB) http.HandlerFunc {
 				return
 			}
 
+			search := r.URL.Query().Get("search")
+			searchTerm := "%" + search + "%"
+
 			args := []interface{}{
 				int(ownerId),
+				searchTerm,
 			}
 
 			var id int
