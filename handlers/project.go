@@ -155,7 +155,7 @@ func SingleProject(db *sql.DB) http.HandlerFunc {
 			}
 
 			projectId := strings.TrimPrefix(r.URL.Path, "/project/")
-			projectId = strings.TrimSuffix(projectId, "/?")
+			projectId = strings.TrimSuffix(projectId, "/")
 			helpers.LogAction(fmt.Sprintf("ProjectId: %s", projectId))
 
 			if projectId == "" {
