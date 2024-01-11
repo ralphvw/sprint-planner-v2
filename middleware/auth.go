@@ -16,6 +16,8 @@ func CheckToken(next http.Handler) http.HandlerFunc {
 			return
 		}
 
+		helpers.EnableCors(w)
+
 		if err := godotenv.Load(); err != nil {
 			helpers.LogAction("Error loading env file")
 		}
