@@ -155,6 +155,7 @@ func SingleProject(db *sql.DB) http.HandlerFunc {
 			}
 
 			projectId := strings.TrimPrefix(r.URL.Path, "/project/")
+			projectId = strings.TrimSuffix(projectId, "/?")
 
 			if projectId == "" {
 				helpers.LogAction("Invalid URL Path: Missing id argument")
