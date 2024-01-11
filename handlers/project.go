@@ -260,7 +260,7 @@ func AddMember(db *sql.DB) http.HandlerFunc {
 		if r.Method == "DELETE" {
 			er := services.DeleteMember(db, requestPayload.UserId, requestPayload.ProjectId)
 			if er != nil {
-				helpers.LogAction("Error deleting member " + err.Error())
+				helpers.LogAction("Error deleting member " + er.Error())
 				http.Error(w, "Server Error", http.StatusInternalServerError)
 				return
 			}
@@ -285,7 +285,7 @@ func AddMember(db *sql.DB) http.HandlerFunc {
 		}
 		er := services.AddMember(db, requestPayload.ProjectId, requestPayload.UserId)
 		if er != nil {
-			helpers.LogAction("Add Project Member: " + err.Error())
+			helpers.LogAction("Add Project Member: " + er.Error())
 			http.Error(w, "Server Error", http.StatusInternalServerError)
 			return
 		}
