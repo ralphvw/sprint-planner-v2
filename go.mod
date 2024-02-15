@@ -1,6 +1,6 @@
 module github.com/ralphvw/sprint-planner-v2
 
-go 1.22
+go 1.22.0
 
 require (
 	github.com/golang-jwt/jwt/v5 v5.2.0
