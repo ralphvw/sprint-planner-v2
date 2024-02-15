@@ -138,7 +138,7 @@ func AddSprint(db *sql.DB) http.HandlerFunc {
 		}
 
 		for _, member := range requestPayload.Members {
-			err := services.AddSprintMember(db, member.UserId, member.Designation, result["id"])
+			err := services.AddSprintMember(db, member.UserId, member.Designation, (*result)["id"])
 			if err != nil {
 				helpers.LogAction("Error adding member to sprint " + err.Error())
 				http.Error(w, "Server Error", http.StatusInternalServerError)

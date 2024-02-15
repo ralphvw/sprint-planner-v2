@@ -4,14 +4,13 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"reflect"
 
 	"github.com/ralphvw/sprint-planner-v2/helpers"
 	"github.com/ralphvw/sprint-planner-v2/models"
 	"github.com/ralphvw/sprint-planner-v2/queries"
 )
 
-func AddProject(db *sql.DB, name string, description string, ownerId int) (map[string]interface{}, error) {
+func AddProject(db *sql.DB, name string, description string, ownerId int) (*map[string]interface{}, error) {
 	var project models.Project
 	err := db.QueryRow(queries.AddProject, name, description, ownerId).Scan(&project.ID, &project.Name, &project.Description)
 	if err != nil {
@@ -22,7 +21,7 @@ func AddProject(db *sql.DB, name string, description string, ownerId int) (map[s
 		"name":        name,
 		"description": description,
 	}
-	return result, nil
+	return &result, nil
 }
 
 func AddMember(db *sql.DB, projectId int, userId int) error {
@@ -62,10 +61,8 @@ func CheckProjectOwner(db *sql.DB, userId int, projectId int) error {
 	return nil
 }
 
-func GetProjectMembers(db *sql.DB, projectId int) ([]map[string]interface{}, error) {
+func GetProjectMembers(db *sql.DB, projectId int) (*[]map[string]interface{}, error) {
 	var results []map[string]interface{}
-
-	var user models.User
 
 	rows, err := db.Query(queries.GetProjectMembers, projectId)
 
@@ -74,15 +71,16 @@ func GetProjectMembers(db *sql.DB, projectId int) ([]map[string]interface{}, err
 	}
 
 	for rows.Next() {
+		var user models.User
 		err := rows.Scan(&user.ID, &user.FirstName, &user.LastName, &user.Email)
 		if err != nil {
 			return nil, err
 		}
 
 		result := map[string]interface{}{
-			"id":        reflect.Indirect(reflect.ValueOf(user.ID)).Interface(),
-			"firstName": reflect.Indirect(reflect.ValueOf(user.FirstName)).Interface(),
-			"lastName":  helpers.GetPointerValue(user.LastName),
+			"id":        user.ID,
+			"firstName": user.FirstName,
+			"lastName":  user.LastName,
 		}
 
 		helpers.LogAction(fmt.Sprintf("%v", result))
@@ -100,5 +98,5 @@ func GetProjectMembers(db *sql.DB, projectId int) ([]map[string]interface{}, err
 	}
 
 	results = append(results, ownerResult)
-	return results, nil
+	return &results, nil
 }
