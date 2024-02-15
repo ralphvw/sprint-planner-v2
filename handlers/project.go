@@ -119,7 +119,7 @@ func AddProject(db *sql.DB) http.HandlerFunc {
 			return
 		}
 
-		res, ok := result["id"].(int)
+		res, ok := (*result)["id"].(int)
 
 		if !ok {
 			helpers.LogAction("Error converting projectId into an int")

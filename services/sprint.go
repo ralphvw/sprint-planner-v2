@@ -7,7 +7,7 @@ import (
 	"github.com/ralphvw/sprint-planner-v2/queries"
 )
 
-func AddSprint(db *sql.DB, name string, judge int, projectId int) (map[string]interface{}, error) {
+func AddSprint(db *sql.DB, name string, judge int, projectId int) (*map[string]interface{}, error) {
 	var sprint models.Sprint
 
 	err := db.QueryRow(queries.CreateSprint, name, judge, projectId).Scan(&sprint.ID, &sprint.Name, &sprint.Judge, &sprint.ProjectID)
@@ -23,7 +23,7 @@ func AddSprint(db *sql.DB, name string, judge int, projectId int) (map[string]in
 		"projectId": sprint.ProjectID,
 	}
 
-	return result, nil
+	return &result, nil
 }
 
 func AddSprintMember(db *sql.DB, userId int, designation string, sprintId interface{}) error {

@@ -3,11 +3,34 @@ package queries
 var AddProject string = "INSERT INTO projects(name, description, owner_id) VALUES($1, $2, $3) RETURNING id, name, description"
 var AddMember string = "INSERT INTO project_members(project_id, user_id) VALUES($1, $2)"
 
-var FetchProjects string = `SELECT p.id, p.name, p.created_at, (SELECT COUNT(*) FROM sprints WHERE project_id=p.id) as plans from projects p WHERE owner_id=$1 AND name ILIKE $2`
+var FetchProjects string = `SELECT p.id, p.name, p.created_at, (SELECT COUNT(*) FROM sprints WHERE project_id = p.id) as plans
+FROM projects p
+WHERE p.owner_id = $1 AND p.name ILIKE $2
+
+UNION
+
+SELECT p.id, p.name, p.created_at, (SELECT COUNT(*) FROM sprints WHERE project_id = p.id) as plans
+FROM projects p
+JOIN project_members pm ON p.id = pm.project_id
+WHERE pm.user_id = $1 AND p.name ILIKE $2
+`
 
 var RemoveMember string = "DELETE FROM project_members WHERE user_id=$1 AND project_id=$2"
 
-var CountProjects string = "SELECT COUNT(*) FROM projects WHERE owner_id=$1 AND name ILIKE $2"
+var CountProjects string = `SELECT COUNT(*)
+FROM (
+    SELECT p.id
+    FROM projects p
+    WHERE p.owner_id = $1 AND p.name ILIKE $2
+
+    UNION
+
+    SELECT p.id
+    FROM projects p
+    JOIN project_members pm ON p.id = pm.project_id
+    WHERE pm.user_id = $1 AND p.name ILIKE $2
+) AS combined_projects
+`
 
 var CheckProjectMember string = "SELECT id FROM project_members WHERE user_id=$1 AND project_id=$2"
 
