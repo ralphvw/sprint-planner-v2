@@ -17,25 +17,30 @@ func main() {
 		port = "4000"
 	}
 
+	mux := http.NewServeMux()
+
 	db := db.InitDb()
 
 	fmt.Print("Server started at " + port + "\n")
-	http.HandleFunc("/", func(w http.ResponseWriter, _ *http.Request) {
+	mux.HandleFunc("/", func(w http.ResponseWriter, _ *http.Request) {
 		helpers.EnableCors(w)
 		helpers.LogAction("Welcome")
 	})
 
-	http.HandleFunc("/auth/login", handlers.Login(db))
-	http.HandleFunc("/auth/signup", handlers.SignUp(db))
-	http.HandleFunc("/auth/send-reset-password-email", handlers.SendResetMail(db))
-	http.HandleFunc("/auth/reset-password", handlers.ResetPassword(db))
-	http.HandleFunc("/users", handlers.SearchUsers(db))
-	http.HandleFunc("/projects", handlers.AddProject(db))
-	http.HandleFunc("/project/", handlers.SingleProject(db))
-	http.HandleFunc("/project/member", handlers.AddMember(db))
-	http.HandleFunc("/project/members", handlers.GetMembers(db))
-	http.HandleFunc("/sprints", handlers.AddSprint(db))
-	err := http.ListenAndServe(":"+port, nil)
+	mux.HandleFunc("/auth/login", handlers.Login(db))
+	mux.HandleFunc("/auth/signup", handlers.SignUp(db))
+	mux.HandleFunc("/auth/send-reset-password-email", handlers.SendResetMail(db))
+	mux.HandleFunc("/auth/reset-password", handlers.ResetPassword(db))
+	mux.HandleFunc("/users", handlers.SearchUsers(db))
+	mux.HandleFunc("GET /projects", handlers.GetAllProjects(db))
+	mux.HandleFunc("POST /projects", handlers.AddProject(db))
+	mux.HandleFunc("GET /project/{id}", handlers.GetSingleProject(db))
+	mux.HandleFunc("POST /projects/members", handlers.AddMember(db))
+	mux.HandleFunc("DELETE /projects/members", handlers.DeleteMember(db))
+	mux.HandleFunc("GET /projects/members", handlers.GetMembers(db))
+	mux.HandleFunc("GET /sprints", handlers.GetSprints(db))
+	mux.HandleFunc("POST /sprints", handlers.AddSprint(db))
+	err := http.ListenAndServe(":"+port, mux)
 	if err != nil {
 		log.Fatal("Server error:", err)
 	}
