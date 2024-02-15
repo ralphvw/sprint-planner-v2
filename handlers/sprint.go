@@ -14,7 +14,7 @@ import (
 	"github.com/ralphvw/sprint-planner-v2/services"
 )
 
-func AddSprint(db *sql.DB) http.HandlerFunc {
+func GetSprints(db *sql.DB) http.HandlerFunc {
 	return middleware.CheckToken(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == "OPTIONS" {
 			helpers.HandleOptions(w, r)
@@ -36,46 +36,67 @@ func AddSprint(db *sql.DB) http.HandlerFunc {
 			return
 		}
 
-		if r.Method == "GET" {
-			projectId, err := strconv.Atoi(r.URL.Query().Get("projectId"))
-			if err != nil {
-				helpers.LogAction("Error converting projectId to int: " + err.Error())
-				http.Error(w, "ProjectId missing", http.StatusBadRequest)
-				return
-			}
-			page, err := strconv.Atoi(r.URL.Query().Get("page"))
-			if err != nil {
-				helpers.LogAction("Error converting page to int: " + err.Error())
-				http.Error(w, "Page number missing", http.StatusBadRequest)
-				return
-			}
+		projectId, err := strconv.Atoi(r.URL.Query().Get("projectId"))
+		if err != nil {
+			helpers.LogAction("Error converting projectId to int: " + err.Error())
+			http.Error(w, "ProjectId missing", http.StatusBadRequest)
+			return
+		}
+		page, err := strconv.Atoi(r.URL.Query().Get("page"))
+		if err != nil {
+			helpers.LogAction("Error converting page to int: " + err.Error())
+			http.Error(w, "Page number missing", http.StatusBadRequest)
+			return
+		}
 
-			search := r.URL.Query().Get("search")
-			searchTerm := "%" + search + "%"
+		search := r.URL.Query().Get("search")
+		searchTerm := "%" + search + "%"
 
-			e := services.CheckProjectOwner(db, int(userId), projectId)
+		e := services.CheckProjectOwner(db, int(userId), projectId)
 
-			if e != nil {
-				helpers.LogAction(fmt.Sprintf("User: %d trying to fetch sprints from project: %d  without membership", int(userId), projectId))
-				http.Error(w, "Forbidden", http.StatusForbidden)
-				return
-			}
+		if e != nil {
+			helpers.LogAction(fmt.Sprintf("User: %d trying to fetch sprints from project: %d  without membership", int(userId), projectId))
+			http.Error(w, "Forbidden", http.StatusForbidden)
+			return
+		}
 
-			args := []interface{}{
-				projectId,
-				searchTerm,
-			}
+		args := []interface{}{
+			projectId,
+			searchTerm,
+		}
 
-			var id int
-			var name string
+		var id int
+		var name string
 
-			keys := []string{
-				"id",
-				"name",
-			}
+		keys := []string{
+			"id",
+			"name",
+		}
 
-			message := "Sprints fetched successfully"
-			helpers.GetDataHandler(w, r, db, 10, page, queries.GetSprints, queries.CountSprints, message, args, keys, &id, &name)
+		message := "Sprints fetched successfully"
+		helpers.GetDataHandler(w, r, db, 10, page, queries.GetSprints, queries.CountSprints, message, args, keys, &id, &name)
+	}))
+}
+
+func AddSprint(db *sql.DB) http.HandlerFunc {
+	return middleware.CheckToken(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == "OPTIONS" {
+			helpers.HandleOptions(w, r)
+			return
+		}
+
+		helpers.EnableCors(w)
+
+		claims, ok := r.Context().Value("userClaims").(map[string]interface{})
+		if !ok {
+			helpers.LogAction("Error extracting user claims")
+			http.Error(w, "Server Error", http.StatusInternalServerError)
+			return
+		}
+		userId, ok := claims["id"].(float64)
+		if !ok {
+			helpers.LogAction("Wrong type assertion for claims")
+			http.Error(w, "Server Error", http.StatusInternalServerError)
 			return
 		}
 
