@@ -23,19 +23,6 @@ func GetSprints(db *sql.DB) http.HandlerFunc {
 
 		helpers.EnableCors(w)
 
-		claims, ok := r.Context().Value("userClaims").(map[string]interface{})
-		if !ok {
-			helpers.LogAction("Error extracting user claims")
-			http.Error(w, "Server Error", http.StatusInternalServerError)
-			return
-		}
-		userId, ok := claims["id"].(float64)
-		if !ok {
-			helpers.LogAction("Wrong type assertion for claims")
-			http.Error(w, "Server Error", http.StatusInternalServerError)
-			return
-		}
-
 		projectId, err := strconv.Atoi(r.URL.Query().Get("projectId"))
 		if err != nil {
 			helpers.LogAction("Error converting projectId to int: " + err.Error())
@@ -51,14 +38,6 @@ func GetSprints(db *sql.DB) http.HandlerFunc {
 
 		search := r.URL.Query().Get("search")
 		searchTerm := "%" + search + "%"
-
-		e := services.CheckProjectOwner(db, int(userId), projectId)
-
-		if e != nil {
-			helpers.LogAction(fmt.Sprintf("User: %d trying to fetch sprints from project: %d  without membership", int(userId), projectId))
-			http.Error(w, "Forbidden", http.StatusForbidden)
-			return
-		}
 
 		args := []interface{}{
 			projectId,
@@ -126,7 +105,7 @@ func AddSprint(db *sql.DB) http.HandlerFunc {
 
 		if e != nil {
 			helpers.LogAction(fmt.Sprintf("Attempt to create sprint without ownership %d", int(userId)))
-			http.Error(w, "Forbidden Request", http.StatusForbidden)
+			http.Error(w, "You are not the owner of this project", http.StatusForbidden)
 			return
 		}
 
